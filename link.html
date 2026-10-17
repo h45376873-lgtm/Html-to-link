@@ -1,0 +1,389 @@
+```html
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Code Sharer & Live Previewer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- LZ-String Library untuk kompresi URL hash agar link lebih pendek & efisien -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        .code-font {
+            font-family: 'Fira Code', 'Courier New', Courier, monospace;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans antialiased overflow-x-hidden">
+
+    <!-- Header / Navbar -->
+    <header class="bg-slate-800 border-b border-slate-700 px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-lg z-10">
+        <div class="flex items-center space-x-3">
+            <div class="bg-indigo-600 text-white p-2 rounded-lg shadow-md flex items-center justify-center">
+                <i class="fa-solid fa-code text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-white tracking-wide">HTML Web Sharer</h1>
+                <p class="text-xs text-slate-400">Preview & Bagikan Kode HTML Instan</p>
+            </div>
+        </div>
+
+        <!-- Action Controls Header -->
+        <div class="flex flex-wrap items-center gap-2">
+            <!-- Upload File Input (Hidden) -->
+            <input type="file" id="fileInput" accept=".html,.htm" class="hidden" onchange="handleFileUpload(event)">
+            
+            <button onclick="document.getElementById('fileInput').click()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs md:text-sm px-3 py-2 rounded-lg font-medium transition duration-200 flex items-center gap-2 border border-slate-600">
+                <i class="fa-solid fa-upload text-indigo-400"></i>
+                <span>Unggah File .html</span>
+            </button>
+
+            <button onclick="clearEditor()" class="bg-slate-700 hover:bg-rose-900/50 hover:text-rose-300 text-slate-300 text-xs md:text-sm px-3 py-2 rounded-lg font-medium transition duration-200 flex items-center gap-1.5 border border-slate-600" title="Bersihkan Editor">
+                <i class="fa-solid fa-trash-can"></i>
+                <span class="hidden sm:inline">Riset</span>
+            </button>
+
+            <!-- Generate Shareable Link Button -->
+            <button onclick="generateShareableLink()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs md:text-sm px-4 py-2 rounded-lg font-semibold shadow-md hover:shadow-indigo-500/20 transition duration-200 flex items-center gap-2">
+                <i class="fa-solid fa-share-nodes"></i>
+                <span>Buat Link Berbagi</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+        
+        <!-- Code Editor Section -->
+        <div id="editorContainer" class="w-full md:w-1/2 flex flex-col border-b md:border-b-0 md:border-r border-slate-700 h-1/2 md:h-full">
+            <div class="bg-slate-800/80 px-4 py-2 border-b border-slate-700 flex justify-between items-center text-xs text-slate-400">
+                <span class="font-semibold flex items-center gap-2 text-slate-300">
+                    <i class="fa-regular fa-file-code text-indigo-400"></i> Editor Kode HTML
+                </span>
+                <span id="charCount">0 Karakter</span>
+            </div>
+            <textarea id="htmlCode" class="w-full flex-1 bg-slate-950 text-slate-200 p-4 code-font text-sm resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500/50 leading-relaxed" placeholder="Ketik atau tempel (paste) kode HTML kamu di sini, atau unggah file .html dari tombol di atas..." spellcheck="false" oninput="updatePreview(); updateCharCount();"></textarea>
+        </div>
+
+        <!-- Live Preview Section -->
+        <div id="previewContainer" class="w-full md:w-1/2 flex flex-col h-1/2 md:h-full bg-white">
+            <div class="bg-slate-800 px-4 py-2 border-b border-slate-700 flex justify-between items-center text-xs text-slate-400">
+                <span class="font-semibold flex items-center gap-2 text-slate-300">
+                    <i class="fa-solid fa-eye text-emerald-400"></i> Live Preview Real-time
+                </span>
+                <div class="flex items-center gap-2">
+                    <button onclick="openInNewTab()" class="hover:text-white transition" title="Buka Pratinjau di Tab Baru">
+                        <i class="fa-solid fa-up-right-from-square"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Dynamic Preview Iframe -->
+            <iframe id="previewIframe" class="w-full flex-1 border-none bg-white" sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"></iframe>
+        </div>
+
+    </main>
+
+    <!-- Footer Bar & Info Hosting -->
+    <footer class="bg-slate-800 border-t border-slate-700 px-4 py-2 text-xs text-slate-400 flex flex-wrap justify-between items-center gap-2">
+        <div class="flex items-center gap-2">
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Status: Siap</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="openGuideModal()" class="text-indigo-400 hover:text-indigo-300 underline flex items-center gap-1">
+                <i class="fa-solid fa-circle-info"></i> Panduan Hosting Permanen (Netlify/GitHub)
+            </button>
+        </div>
+    </footer>
+
+    <!-- Modal Share Link Result -->
+    <div id="shareModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-lg w-full shadow-2xl relative animate-fade-in">
+            <button onclick="closeModal('shareModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-4">
+                <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-lg">
+                    <i class="fa-solid fa-link text-2xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Link Berbagi Berhasil Dibuat!</h3>
+                    <p class="text-xs text-slate-400">Kode HTML kamu tersimpan di dalam URL link ini.</p>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Tautan Publik (URL Hash):</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="shareUrlInput" readonly class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 code-font focus:outline-none">
+                        <button onclick="copyShareUrl()" id="copyBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-semibold shrink-0 transition flex items-center gap-1">
+                            <i class="fa-solid fa-copy"></i>
+                            <span id="copyBtnText">Salin</span>
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1">
+                        <i class="fa-solid fa-circle-check text-emerald-400"></i> Siapa pun yang membuka tautan ini dapat langsung melihat tampilan halaman web kamu!
+                    </p>
+                </div>
+
+                <div class="p-3 bg-slate-900/60 rounded-lg border border-slate-700/60 text-xs space-y-2">
+                    <p class="font-semibold text-slate-300">Opsi Alternatif untuk Mengakses:</p>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="testBlobUrl()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded text-xs transition">
+                            <i class="fa-solid fa-bolt text-amber-400 mr-1"></i> Buka via Blob URL
+                        </button>
+                        <button onclick="downloadHtmlFile()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded text-xs transition">
+                            <i class="fa-solid fa-download text-sky-400 mr-1"></i> Unduh File HTML
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 text-right">
+                <button onclick="closeModal('shareModal')" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-lg text-xs font-semibold">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Panduan Hosting Permanen -->
+    <div id="guideModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-2xl w-full shadow-2xl relative max-h-[85vh] overflow-y-auto">
+            <button onclick="closeModal('guideModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-up text-indigo-400"></i> Cara Hosting Website HTML Gratis Permanen
+            </h3>
+            <p class="text-xs text-slate-400 mb-6">Jika kamu ingin membuat web dengan URL khusus/kustom (seperti <code>nama-web.netlify.app</code>) tanpa karakter URL yang panjang, gunakan layanan hosting statis gratis berikut:</p>
+
+            <div class="space-y-4 text-sm text-slate-300">
+                <!-- Netlify Drop -->
+                <div class="p-4 bg-slate-900/80 rounded-lg border border-slate-700">
+                    <div class="flex items-center gap-2 font-bold text-indigo-400 mb-1">
+                        <i class="fa-solid fa-boxes-packing"></i> 1. Netlify Drop (Paling Mudah)
+                    </div>
+                    <ol class="list-decimal list-inside text-xs space-y-1 text-slate-300 leading-relaxed">
+                        <li>Unduh file HTML kamu menggunakan tombol <b>Unduh File HTML</b>.</li>
+                        <li>Buka situs <a href="https://app.netlify.com/drop" target="_blank" class="text-indigo-400 underline">app.netlify.com/drop</a> di browser.</li>
+                        <li>Tarik (drag & drop) folder yang berisi file HTML kamu (pastikan nama filenya <code>index.html</code>).</li>
+                        <li>Layanan akan langsung membuatkan domain web publik gratis!</li>
+                    </ol>
+                </div>
+
+                <!-- GitHub Pages -->
+                <div class="p-4 bg-slate-900/80 rounded-lg border border-slate-700">
+                    <div class="flex items-center gap-2 font-bold text-emerald-400 mb-1">
+                        <i class="fa-brands fa-github"></i> 2. GitHub Pages
+                    </div>
+                    <ol class="list-decimal list-inside text-xs space-y-1 text-slate-300 leading-relaxed">
+                        <li>Buat repositori baru di GitHub.</li>
+                        <li>Unggah file HTML kamu dengan nama <code>index.html</code>.</li>
+                        <li>Masuk ke menu <b>Settings > Pages</b>, lalu pilih branch <code>main</code> sebagai sumber.</li>
+                        <li>Website kamu akan aktif dalam 1-2 menit di tautan <code>username.github.io/repository</code>.</li>
+                    </ol>
+                </div>
+
+                <!-- Vercel -->
+                <div class="p-4 bg-slate-900/80 rounded-lg border border-slate-700">
+                    <div class="flex items-center gap-2 font-bold text-sky-400 mb-1">
+                        <i class="fa-solid fa-triangle-exclamation"></i> 3. Vercel / Render
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Kamu juga bisa menghubungkan akun GitHub ke Vercel/Render untuk deployment otomatis setiap kali ada perubahan file kode HTML.
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-6 text-right">
+                <button onclick="closeModal('guideModal')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-xs font-semibold">Mengerti</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-12 right-5 bg-slate-800 text-white border border-slate-700 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 transition-all duration-300 transform translate-y-20 opacity-0 z-50">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toastMessage" class="text-xs font-medium">Notifikasi</span>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Sample Default Template
+        const defaultCode = `<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Halaman Website Saya</title>
+    <script src="https://cdn.tailwindcss.com"><\/script>
+</head>
+<body class="bg-gradient-to-br from-indigo-900 via-slate-900 to-black text-white min-h-screen flex items-center justify-center p-6">
+    <div class="max-w-md w-full bg-white/10 backdrop-blur-md p-8 rounded-2xl border border-white/20 shadow-2xl text-center">
+        <div class="w-16 h-16 bg-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg text-2xl">
+            🚀
+        </div>
+        <h1 class="text-2xl font-bold mb-2">Halo Dunia!</h1>
+        <p class="text-slate-300 text-sm mb-6">
+            Selamat datang di web buatan saya. Kode HTML ini dibagikan secara instan melalui link!
+        </p>
+        <button onclick="alert('Terima kasih sudah berkunjung!')" class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition shadow-lg">
+            Klik Saya
+        </button>
+    </div>
+</body>
+</html>`;
+
+        const htmlEditor = document.getElementById('htmlCode');
+        const previewIframe = document.getElementById('previewIframe');
+
+        // Initial setup on Window Load
+        window.onload = function() {
+            // Check if URL has hash data
+            if (window.location.hash && window.location.hash.length > 1) {
+                try {
+                    const compressedData = window.location.hash.substring(1);
+                    const decompressed = LZString.decompressFromEncodedURIComponent(compressedData);
+                    if (decompressed) {
+                        htmlEditor.value = decompressed;
+                        showToast('Kode berhasil dimuat dari link berbagi!', 'success');
+                    } else {
+                        htmlEditor.value = defaultCode;
+                    }
+                } catch (e) {
+                    console.error("Gagal membaca data Hash:", e);
+                    htmlEditor.value = defaultCode;
+                }
+            } else {
+                htmlEditor.value = defaultCode;
+            }
+
+            updatePreview();
+            updateCharCount();
+        };
+
+        // Real-time Preview Update Function
+        function updatePreview() {
+            const code = htmlEditor.value;
+            const iframeDocument = previewIframe.contentDocument || previewIframe.contentWindow.document;
+            iframeDocument.open();
+            iframeDocument.write(code);
+            iframeDocument.close();
+        }
+
+        // Character Counter
+        function updateCharCount() {
+            const count = htmlEditor.value.length;
+            document.getElementById('charCount').textContent = count.toLocaleString('id-ID') + ' Karakter';
+        }
+
+        // Handle Uploading .html File
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.name.endsWith('.html') && !file.name.endsWith('.htm')) {
+                showToast('Harap pilih file berformat .html atau .htm', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                htmlEditor.value = e.target.result;
+                updatePreview();
+                updateCharCount();
+                showToast(`File "${file.name}" berhasil dimuat!`, 'success');
+            };
+            reader.readAsText(file);
+
+            // Reset input value
+            event.target.value = '';
+        }
+
+        // Clear Editor
+        function clearEditor() {
+            if (confirm('Apakah Anda yakin ingin mengosongkan editor kode?')) {
+                htmlEditor.value = '';
+                updatePreview();
+                updateCharCount();
+                showToast('Editor dibersihkan', 'info');
+            }
+        }
+
+        // Generate Shareable Link using LZ-String Compression via Hash
+        function generateShareableLink() {
+            const code = htmlEditor.value.trim();
+            if (!code) {
+                showToast('Editor masih kosong! Ketik kode HTML terlebih dahulu.', 'error');
+                return;
+            }
+
+            try {
+                // Compress code to fit easily in hash URL
+                const compressed = LZString.compressToEncodedURIComponent(code);
+                const baseUrl = window.location.origin + window.location.pathname;
+                const fullShareUrl = `${baseUrl}#${compressed}`;
+
+                document.getElementById('shareUrlInput').value = fullShareUrl;
+                document.getElementById('shareModal').classList.remove('hidden');
+            } catch (err) {
+                showToast('Gagal membuat link: Kode terlalu besar.', 'error');
+            }
+        }
+
+        // Copy Share Link to Clipboard
+        function copyShareUrl() {
+            const shareInput = document.getElementById('shareUrlInput');
+            shareInput.select();
+            shareInput.setSelectionRange(0, 99999); // Mobile
+
+            try {
+                document.execCommand('copy');
+                const copyBtnText = document.getElementById('copyBtnText');
+                copyBtnText.textContent = 'Tersalin!';
+                showToast('Tautan berhasil disalin ke clipboard!', 'success');
+
+                setTimeout(() => {
+                    copyBtnText.textContent = 'Salin';
+                }, 2000);
+            } catch (err) {
+                showToast('Gagal menyalin secara otomatis.', 'error');
+            }
+        }
+
+        // Open Current Code via Blob URL
+        function testBlobUrl() {
+            const code = htmlEditor.value;
+            const blob = new Blob([code], { type: 'text/html' });
+            const blobUrl = URL.createObjectURL(blob);
+            window.open(blobUrl, '_blank');
+        }
+
+        // Open Current Preview in New Tab
+        function openInNewTab() {
+            testBlobUrl();
+        }
+
+        // Download HTML File
+        function downloadHtmlFile() {
+            const code = htmlEd
